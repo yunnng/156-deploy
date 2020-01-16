@@ -1,0 +1,6 @@
+scripts/*.js
+config/*.js
+public/*.js
+registerServiceWorker.js
+node_modules/*.js
+src/ambient.d.ts
