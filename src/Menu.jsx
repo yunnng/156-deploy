@@ -1,49 +1,43 @@
 import React, { useState } from 'react'
-import { Menu, Icon } from 'antd'
+import { Menu } from 'antd'
+import { withRouter } from 'react-router-dom'
+import PropTypes from 'prop-types' // eslint-disable import/no-extraneous-dependencies
+import styled from 'styled-components'
 
-const { SubMenu } = Menu
+const { Item } = Menu
 
-function Menus() {
-  const [current, setCurrent] = useState('mail')
+const MenuStyle = styled(Menu)`
+    width: 256px;
+    height: 100%;
+`
+
+function Menus(props) {
+  const [current, setCurrent] = useState('list')
 
   const handleClick = (e) => {
+    const { history } = props
     setCurrent(e.key)
+    history.push(e.key)
   }
 
   return (
-    <Menu onClick={handleClick} selectedKeys={[current]} mode='horizontal'>
-      <Menu.Item key='mail'>
-        <Icon type='mail' />
-        Navigation One
-      </Menu.Item>
-      <Menu.Item key='app' disabled>
-        <Icon type='appstore' />
-        Navigation Two
-      </Menu.Item>
-      <SubMenu
-        title={(
-          <span className='submenu-title-wrapper'>
-            <Icon type='setting' />
-              Navigation Three - Submcenu
-          </span>
-        )}
-      >
-        <Menu.ItemGroup title='Item 1'>
-          <Menu.Item key='setting:1'>Option 1</Menu.Item>
-          <Menu.Item key='setting:2'>Option 2</Menu.Item>
-        </Menu.ItemGroup>
-        <Menu.ItemGroup title='Item 2'>
-          <Menu.Item key='setting:3'>Option 3</Menu.Item>
-          <Menu.Item key='setting:4'>Option 4</Menu.Item>
-        </Menu.ItemGroup>
-      </SubMenu>
-      <Menu.Item key='alipay'>
-        <a href='https://ant.design' target='_blank' rel='noopener noreferrer'>
-          Navigation Four - Link
-        </a>
-      </Menu.Item>
-    </Menu>
+    <MenuStyle
+      onClick={handleClick}
+      selectedKeys={[current]}
+      mode='inline'
+    >
+      <Item key='list'>
+        可发布项目
+      </Item>
+      <Item key='query'>
+        发布任务查询
+      </Item>
+    </MenuStyle>
   )
 }
 
-export default Menus
+Menus.propTypes = {
+  history: PropTypes.object.isRequired,
+}
+
+export default withRouter(Menus)

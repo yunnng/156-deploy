@@ -1,13 +1,23 @@
 import React from 'react'
+import { BrowserRouter as Router, Route, Switch } from 'react-router-dom'
+import styled from 'styled-components'
 import Menus from './Menu'
 import './App.css'
 
-function App() {
+const App = styled.div`
+  height: 100vh;
+`
+
+export default function () {
   return (
-    <div className='App'>
-      <Menus />
-    </div>
+    <App className='App'>
+      <Router>
+        <Menus />
+        <Switch>
+          <Route exact path='/list' />
+          <Route exact path='/query' />
+        </Switch>
+      </Router>
+    </App>
   )
 }
-
-export default App
