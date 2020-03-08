@@ -8,7 +8,9 @@ router.get('/list', function(req, res, next) {
 })
 
 router.get('/branchList', async function(req, res, next) {
-  await res.json(await repoOperation.branchList())
+  const { query: { key } } = req
+  if (key) return res.json(await repoOperation.branchList(key))
+  return res.json([])
 })
 
 module.exports = router

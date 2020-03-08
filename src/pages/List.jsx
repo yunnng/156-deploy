@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import { Button, Table, Tag } from 'antd'
 import styled from 'styled-components'
-import PropTypes from 'prop-types' // eslint-disable import/no-extraneous-dependencies
+import PropTypes from 'prop-types'
 import { withRouter } from 'react-router-dom'
-import { list } from '../scripts/api' // eslint-disable
+import { list } from '../scripts/api'
 
+let history = { push() {} }
 const status = tags => (
   <span>
     {tags.map((tag) => {
@@ -22,10 +23,9 @@ const status = tags => (
 )
 
 const action = (props) => {
-  const { history, projectName } = props
   const deployClick = () => {
     history.push('./Deploy', {
-      projectName,
+      ...props,
     })
   }
   return (
@@ -33,11 +33,6 @@ const action = (props) => {
       <Button onClick={deployClick}>发布</Button>
     </span>
   )
-}
-
-action.propTypes = {
-  history: PropTypes.object.isRequired,
-  projectName: PropTypes.string.isRequired,
 }
 
 const columns = [
@@ -70,7 +65,7 @@ const columns = [
   {
     title: '操作',
     key: 'action',
-    render: withRouter(action),
+    render: action,
   },
 ]
 
@@ -78,8 +73,10 @@ const ListCss = styled.div`
   flex: 1;
   padding: 16px;
 `
-function List() {
+function List(props) {
   const [data, setData] = useState([])
+  const { history: h } = props
+  history = h
   useEffect(() => {
     list()
       .then((res) => {
@@ -93,4 +90,8 @@ function List() {
   )
 }
 
-export default List
+List.propTypes = {
+  history: PropTypes.object.isRequired,
+}
+
+export default withRouter(List)

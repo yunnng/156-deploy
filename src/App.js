@@ -1,5 +1,5 @@
 import React from 'react'
-import { BrowserRouter as Router, Route, Switch } from 'react-router-dom'
+import { BrowserRouter as Router, Route, Switch, Redirect } from 'react-router-dom'
 import styled from 'styled-components'
 import Menus from './pages/Menu'
 import Deploy from './pages/Deploy'
@@ -22,6 +22,7 @@ export default function () {
           </Route>
           <Route exact path='/deploy' component={Deploy} />
           <Route exact path='/query' />
+          <Redirect from='/' to='/list' />
         </Switch>
       </Router>
     </App>

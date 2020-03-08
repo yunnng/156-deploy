@@ -4,7 +4,7 @@ import {
 } from 'antd'
 import { withRouter } from 'react-router-dom'
 import styled from 'styled-components'
-import PropTypes from 'prop-types' // eslint-disable import/no-extraneous-dependencies
+import PropTypes from 'prop-types'
 import { getBranchList } from '../scripts/api'
 
 const { Option } = Select
@@ -23,14 +23,18 @@ const tailLayout = {
 }
 function Deploy(props) {
   const { history } = props
-  const { location: { state: { projectName } = {} } } = history
+  const { location: { state: { key, projectName } = {} } } = history
   const [branchList, setBranchList] = useState([])
   const [branch, setBranch] = useState('')
   useEffect(() => {
-    if (!projectName) history.push('/list')
-    getBranchList()
+    if (!key || !projectName) return history.push('/list')
+    return getBranchList(key)
       .then((res) => {
         setBranchList(res)
+        const master = 'refs/remotes/origin/master'
+        if (res.includes(master)) {
+          setBranch(master)
+        }
       })
   }, [])
   const branchSelect = (v) => {
@@ -60,7 +64,9 @@ function Deploy(props) {
         ]}
       >
         <Select
+          showSearch
           placeholder='选择发布分支'
+          optionFilterProp='children'
           onChange={branchSelect}
           value={branch}
           allowClear

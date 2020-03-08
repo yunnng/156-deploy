@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Menu } from 'antd'
 import { withRouter } from 'react-router-dom'
-import PropTypes from 'prop-types' // eslint-disable import/no-extraneous-dependencies
+import PropTypes from 'prop-types'
 import styled from 'styled-components'
 
 const { Item } = Menu
