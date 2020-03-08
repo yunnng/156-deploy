@@ -1,7 +1,13 @@
 
 module.exports = {
   repositoriesPath: [
-    // '../156/156-deploy',
-    '../156/app_h5',
+    {
+      path: '../../156/156-deploy',
+      name: '156-deploy',
+    },
+    {
+      path: '../../156/app_h5',
+      name: 'app_h5',
+    },
   ],
 }
