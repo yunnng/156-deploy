@@ -5,7 +5,7 @@ import {
 import { withRouter } from 'react-router-dom'
 import styled from 'styled-components'
 import PropTypes from 'prop-types'
-import { getBranchList } from '../scripts/api'
+import { getBranchList, getCommitList } from '../scripts/api'
 
 const { Option } = Select
 
@@ -24,21 +24,41 @@ const tailLayout = {
 function Deploy(props) {
   const { history } = props
   const { location: { state: { key, projectName } = {} } } = history
-  const [branchList, setBranchList] = useState([])
   const [branch, setBranch] = useState('')
+  const [commit, setCommit] = useState('')
+  const [branchList, setBranchList] = useState([])
+  const [commitList, setCommitList] = useState([])
   useEffect(() => {
-    if (!key || !projectName) return history.push('/list')
-    return getBranchList(key)
-      .then((res) => {
+    if (!key || !projectName) history.push('/list')
+    getBranchList(key)
+      .then(async(res) => {
         setBranchList(res)
         const master = 'refs/remotes/origin/master'
         if (res.includes(master)) {
           setBranch(master)
         }
+        return master || ''
       })
   }, [])
+
+  useEffect(() => {
+    if (branch) {
+      getCommitList(key, branch)
+        .then((list) => {
+          setCommitList(list)
+          if (list.length) {
+            setCommit(list[0])
+          }
+        })
+    }
+  }, [branch])
+
   const branchSelect = (v) => {
     setBranch(v)
+  }
+
+  const commitSelect = (v) => {
+    setCommit(v)
   }
 
   return (
@@ -72,6 +92,28 @@ function Deploy(props) {
           allowClear
         >
           {branchList.map(_ => (
+            <Option key={_} value={_}>{_.replace('refs/remotes/origin/', '')}</Option>
+          ))}
+        </Select>
+      </Form.Item>
+      <Form.Item
+        name='commit'
+        label='版本选取'
+        rules={[
+          {
+            required: true,
+          },
+        ]}
+      >
+        <Select
+          showSearch
+          placeholder='选择发布版本'
+          optionFilterProp='children'
+          onChange={commitSelect}
+          value={commit}
+          allowClear
+        >
+          {commitList.map(_ => (
             <Option key={_} value={_}>{_.replace('refs/remotes/origin/', '')}</Option>
           ))}
         </Select>

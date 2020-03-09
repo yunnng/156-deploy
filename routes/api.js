@@ -13,4 +13,10 @@ router.get('/branchList', async function(req, res, next) {
   return res.json([])
 })
 
+router.get('/commitList', async function(req, res, next) {
+  const { query: { key, branch } } = req
+  if (key) return res.json(await repoOperation.commitList(key, branch))
+  return res.json([])
+})
+
 module.exports = router

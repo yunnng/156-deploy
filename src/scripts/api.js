@@ -21,3 +21,13 @@ export async function getBranchList(key) {
   })
     .then(({ data = [] }) => data)
 }
+
+export async function getCommitList(key, branch) {
+  return axios.get('./api/commitList', {
+    params: {
+      key,
+      branch,
+    },
+  })
+    .then(({ data = [] }) => data)
+}

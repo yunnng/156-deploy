@@ -1,10 +1,10 @@
 import React from 'react'
 import { BrowserRouter as Router, Route, Switch, Redirect } from 'react-router-dom'
 import styled from 'styled-components'
-import Menus from './pages/Menu'
-import Deploy from './pages/Deploy'
-import List from './pages/List'
-import './App.css'
+import Menus from './Menu'
+import Deploy from './Deploy'
+import List from './List'
+import 'antd/dist/antd.css'
 
 const App = styled.div`
   height: 100vh;
