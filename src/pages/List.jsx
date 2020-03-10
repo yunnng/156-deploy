@@ -30,7 +30,7 @@ const action = (props) => {
   }
   return (
     <span>
-      <Button onClick={deployClick}>发布</Button>
+      <Button type='link' onClick={deployClick}>发布</Button>
     </span>
   )
 }

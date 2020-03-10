@@ -10,8 +10,9 @@ import { getBranchList, getCommitList } from '../scripts/api'
 const { Option } = Select
 
 const FormStyle = styled(Form)`
-  width: 600px;
+  max-width: 800px;
   margin: 60px 100px;
+  width: 100%;
 `
 
 const layout = {
@@ -44,16 +45,20 @@ function Deploy(props) {
   useEffect(() => {
     if (branch) {
       getCommitList(key, branch)
-        .then((list) => {
+        .then((list = []) => {
           setCommitList(list)
           if (list.length) {
             setCommit(list[0])
+          } else {
+            setCommit('')
           }
         })
     }
   }, [branch])
 
   const branchSelect = (v) => {
+    setCommit('')
+    setCommitList([])
     setBranch(v)
   }
 
@@ -119,7 +124,7 @@ function Deploy(props) {
         </Select>
       </Form.Item>
       <Form.Item {...tailLayout}>
-        <Button type='primary' htmlType='submit'>
+        <Button type='primary' htmlType='submit' disabled={!commit}>
           发布
         </Button>
       </Form.Item>

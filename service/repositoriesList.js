@@ -9,11 +9,10 @@ const getMostRecentCommit = (repository) => repository.getBranchCommit('master')
 
 const getCommitMessage = (commit) => commit.message()
 
-config.repositoriesPath.forEach(async (path) => {
-
-  const pathToRepo = require('path').resolve(path)
+config.repositoriesPath.forEach(async({ path }) => {
+  const pathToRepo = require('path').resolve(__dirname, path)
   const repo = await git.Repository.open(pathToRepo)
-  console.log(repo)
+  // console.log(repo)
 
   // branch list
   // repo.getReferenceNames(3)
@@ -48,19 +47,32 @@ config.repositoriesPath.forEach(async (path) => {
   // const commits = await walker.getCommitsUntil(() => true)
   // commits.forEach(commit => console.log(`${commit.sha().substr(0, 8)} [${commit.date().toLocaleString()}] ${commit.author().name()} - ${commit.message().trim()}`))
 
-  repo.getBranch('refs/remotes/origin/master')
-    .then((ref) => {
-      Branch.name(ref).then((string) => {
-        // Use string
-        console.log(string)
-        return repo.fetch(string)
-      })
-        .then((a) => {
-          console.log(a)
-        }, (b) => {
-          console.log(b)
-        })
+
+  repo.fetchAll({
+    callbacks(url, userName) {
+      return git.Cred.sshKeyFromAgent(userName)
+    },
+    pruneAfter: true,
+  }, (a) => {
+    console.log(a)
+    return a
+  }).then(() => repo.mergeBranches('master', 'refs/remotes/origin/master'))
+    .then(() => {}, (a) => {
+      console.log(a)
     })
+  // repo.getBranch('refs/remotes/origin/master')
+  //   .then((ref) => {
+  //     Branch.name(ref).then((string) => {
+  //       // Use string
+  //       console.log(string)
+  //       return repo.fetch(string)
+  //     })
+  //       .then((a) => {
+  //         console.log(a)
+  //       }, (b) => {
+  //         console.log(b)
+  //       })
+  //   })
   // repo.mergeBranches('master', 'origin/master') // 仅本地已存在的分支
   // repo.getBranch('refs/remotes/origin/master')
   //   .then((ref) => {

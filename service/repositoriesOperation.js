@@ -29,12 +29,8 @@ module.exports = {
         .then(async() => {
           const walker = git.Revwalk.create(repo)
           // 通过pushGlob来获取所有分支的提交记录
-          walker.pushGlob('c60fe13ad')
-          const commits = await walker.getCommitsUntil((commit) => {
-            console.log(`${commit.sha().substr(0, 8)} ${commit.author().name()} - ${commit.message().trim().substr(0, 100)}`)
-            return true
-          })
-          console.log(commits)
+          walker.pushHead()
+          const commits = await walker.getCommitsUntil(() => true)
           return commits.map((commit) => {
             const data = commit.date()
             const d = data.toLocaleDateString()
@@ -44,11 +40,6 @@ module.exports = {
           })
             .filter((_, i) => i < 50)
         }, () => [])
-        .then((a) => {
-          console.log(a)
-        }, (a) => {
-          console.log(a)
-        })
     }
     return []
   },

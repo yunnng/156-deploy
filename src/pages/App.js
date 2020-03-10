@@ -17,11 +17,9 @@ export default function () {
       <Router>
         <Menus />
         <Switch>
-          <Route exact path='/list' >
-            <List />
-          </Route>
-          <Route exact path='/deploy' component={Deploy} />
+          <Route exact path='/list' component={List} />
           <Route exact path='/query' />
+          <Route exact path='/deploy' component={Deploy} />
           <Redirect from='/' to='/list' />
         </Switch>
       </Router>

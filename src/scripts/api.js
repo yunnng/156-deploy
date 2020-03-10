@@ -29,5 +29,5 @@ export async function getCommitList(key, branch) {
       branch,
     },
   })
-    .then(({ data = [] }) => data)
+    .then(({ data = [] }) => data || [])
 }
