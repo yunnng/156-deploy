@@ -1,5 +1,6 @@
 const git = require('nodegit')
 const config = require('../config')
+const { exec } = require('./../service/util')
 
 const repos = {}
 config.repositoriesPath.forEach(async({ key, path }) => {
@@ -42,5 +43,13 @@ module.exports = {
         }, () => [])
     }
     return []
+  },
+  pull(branch, options) {
+    return exec(`git pull origin/${branch} ${branch}`, options)
+  },
+  checkoutPull(branch, options) {
+    return this.pull(branch, options)
+      .then(() => exec(`git checkout ${branch}`, options))
+      .then(() => this.pull(branch, options))
   },
 }

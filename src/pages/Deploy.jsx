@@ -45,10 +45,10 @@ function Deploy(props) {
   useEffect(() => {
     if (branch) {
       getCommitList(key, branch)
-        .then((list = []) => {
-          setCommitList(list)
-          if (list.length) {
-            setCommit(list[0])
+        .then(({ data = [] }) => {
+          setCommitList(data)
+          if (data.length) {
+            setCommit(data[0])
           } else {
             setCommit('')
           }
