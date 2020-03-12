@@ -1,13 +1,16 @@
 const path = require('path')
 const express = require('express')
 const config = require('../config')
-const { exec, emptyArrRes } = require('./../service/util')
+const { emptyArrRes } = require('./../service/util')
 const repoOperation = require('../service/repositoriesOperation')
 const router = express.Router()
 
 
 router.get('/list', function(req, res, next) {
-  res.json(config.repositoriesPath)
+  res.json({
+    code: 0,
+    data: Object.values(config.repositories),
+  })
 })
 
 router.get('/branchList', async function(req, res, next) {
@@ -19,12 +22,7 @@ router.get('/branchList', async function(req, res, next) {
 router.get('/commitList', async function(req, res, next) {
   const { query: { key, branch } } = req
   if (key) {
-    const b = branch.split('/').pop()
-    const item = config.repositoriesPath.find(_ => _.key === key)
-    const p = path.resolve(__dirname, item.path)
-    exec('git checkout .', { cwd: p })
-      .then(() => repoOperation.checkoutPull(b, { cwd: p }))
-      .then(() => repoOperation.commitList(key, branch))
+    repoOperation.commitList(key, branch)
       .then((data) => res.json({
         code: 0,
         data,
@@ -41,29 +39,26 @@ router.get('/commitList', async function(req, res, next) {
   return res.json(emptyArrRes)
 })
 
-router.get('/pull', function(req, res, next) {
-  const { query: { key, branch } } = req
-  const b = branch.split('/').pop()
-  const item = config.repositoriesPath.find(_ => _.key === key)
-  const p = path.resolve(__dirname, item.path)
-  if (item) {
-    exec('git checkout .', { cwd: p })
-      .then(() => repoOperation.checkoutPull(b, { cwd: p }))
-      .then(() => res.json({
-        code: 0,
-        msg: 'success',
-      }))
-      .catch((msg) => {
-        res.json({
-          code: -1,
-          msg,
-        })
-      })
-    return
+router.get('/deploy', function(req, res, next) {
+  const { query: { key, br } } = req
+  if (key) {
+    const p = path.resolve(__dirname, config.repositories[key].path)
+    repoOperation.deploy(key, br, p)
   }
+  return res.json(emptyArrRes)
+})
+
+router.get('/getProgress', function(req, res, next) {
   res.json({
-    code: -1,
-    msg: `path err.(${p})`,
+    code: 0,
+    data: Object.values(config.repositories)
+      .map((repo) => ({
+        [repo.key]: repo.progress,
+      }))
+      .reduce((a, b) => ({
+        ...a,
+        ...b,
+      }), {}),
   })
 })
 

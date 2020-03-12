@@ -19,7 +19,6 @@ export async function getBranchList(key) {
       key,
     },
   })
-    .then(({ data = [] }) => data)
 }
 
 export async function getCommitList(key, branch) {
@@ -29,5 +28,20 @@ export async function getCommitList(key, branch) {
       branch,
     },
   })
-    .then(({ data = [] }) => data || [])
+    .then(res => res.data)
+}
+
+export async function deploy(key, br) {
+  return axios.get('./api/deploy', {
+    params: {
+      key,
+      br,
+    },
+  })
+    .then(res => res.data)
+}
+
+export async function getProgress() {
+  return axios.get('./api/getProgress')
+    .then(res => res.data)
 }

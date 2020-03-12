@@ -4,7 +4,14 @@ import styled from 'styled-components'
 import Menus from './Menu'
 import Deploy from './Deploy'
 import List from './List'
+import axios from 'axios'
 import 'antd/dist/antd.css'
+
+axios.interceptors.response.use((response) => {
+  return response.data
+}, (error) => {
+  return Promise.reject(error)
+})
 
 const App = styled.div`
   height: 100vh;

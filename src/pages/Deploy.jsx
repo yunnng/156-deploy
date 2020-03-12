@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import {
-  Button, Form, Input, Select,
+  Button, Form, Input, Select, Progress,
 } from 'antd'
 import { withRouter } from 'react-router-dom'
 import styled from 'styled-components'
 import PropTypes from 'prop-types'
-import { getBranchList, getCommitList } from '../scripts/api'
+import {
+  getBranchList, getCommitList, deploy, getProgress,
+} from '../scripts/api'
 
 const { Option } = Select
 
@@ -29,26 +31,38 @@ function Deploy(props) {
   const [commit, setCommit] = useState('')
   const [branchList, setBranchList] = useState([])
   const [commitList, setCommitList] = useState([])
+  const [progress, setProgress] = useState(100)
   useEffect(() => {
     if (!key || !projectName) history.push('/list')
+    const timer = setInterval(() => {
+      getProgress()
+        .then((data) => {
+          console.log(data)
+          setProgress(data[key])
+        })
+    }, 1000)
     getBranchList(key)
       .then(async(res) => {
         setBranchList(res)
-        const master = 'refs/remotes/origin/master'
+        const master = 'origin/master'
         if (res.includes(master)) {
           setBranch(master)
         }
         return master || ''
       })
+    return () => {
+      console.log(123)
+      clearInterval(timer)
+    }
   }, [])
 
   useEffect(() => {
     if (branch) {
       getCommitList(key, branch)
-        .then(({ data = [] }) => {
+        .then((data) => {
           setCommitList(data)
           if (data.length) {
-            setCommit(data[0])
+            setCommit(data[0].hash)
           } else {
             setCommit('')
           }
@@ -64,6 +78,24 @@ function Deploy(props) {
 
   const commitSelect = (v) => {
     setCommit(v)
+  }
+
+  const formatBr = br => br.replace('origin/', '')
+
+  const deployBtnClick = () => {
+    setProgress(1)
+    deploy(key, formatBr(branch))
+      .then((a) => {
+        console.log(a)
+      })
+  }
+
+  const formatCommitList = (_) => {
+    const date = new Date(_.date)
+    const d = date.toLocaleDateString()
+    const h = date.getHours()
+    const m = date.getMinutes()
+    return `${_.hash.substr(0, 8)} [${d} ${h}:${m}] ${_.author_name} - ${_.message.trim().substr(0, 100)}`
   }
 
   return (
@@ -97,7 +129,7 @@ function Deploy(props) {
           allowClear
         >
           {branchList.map(_ => (
-            <Option key={_} value={_}>{_.replace('refs/remotes/origin/', '')}</Option>
+            <Option key={_} value={_}>{formatBr(_)}</Option>
           ))}
         </Select>
       </Form.Item>
@@ -119,14 +151,18 @@ function Deploy(props) {
           allowClear
         >
           {commitList.map(_ => (
-            <Option key={_} value={_}>{_.replace('refs/remotes/origin/', '')}</Option>
+            <Option key={_.hash} value={_.hash}>{formatCommitList(_)}</Option>
           ))}
         </Select>
       </Form.Item>
       <Form.Item {...tailLayout}>
-        <Button type='primary' htmlType='submit' disabled={!commit}>
-          发布
-        </Button>
+        {(progress === 0 || progress === 100) ? (
+          <Button type='primary' htmlType='submit' onClick={deployBtnClick} disabled={!commit}>
+            发布
+          </Button>
+        ) : (
+          <Progress type='circle' percent={progress} width={80} />
+        )}
       </Form.Item>
     </FormStyle>
   )

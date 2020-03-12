@@ -1,55 +1,71 @@
-const git = require('nodegit')
-const config = require('../config')
+const git = require('simple-git/promise')
+const { repositories } = require('../config')
 const { exec } = require('./../service/util')
 
-const repos = {}
-config.repositoriesPath.forEach(async({ key, path }) => {
-  const pathToRepo = require('path').resolve(__dirname, path)
-  repos[key] = await git.Repository.open(pathToRepo)
+Object.values(repositories).forEach(async(r) => {
+  const repository = r
+  const { path } = repository
+  const absolutePath = require('path').resolve(__dirname, path)
+  repository.progress = 100
+  repository.repo = await git(absolutePath)
 })
 
 module.exports = {
   branchList(key) {
-    const repo = repos[key]
+    const { repo } = repositories[key]
     if (repo) {
-      return repo.getReferenceNames(3)
-        .then(async(data) => {
-          // 去重
-          const m = new Map()
-          return data.filter(_ => !m.has(_) && m.set(_, 1))
-            .filter(_ => !(/^refs\/heads*/.test(_))) // 过滤非远程分支
+      return repo.branch({ '-r': true })
+        .then(async data => data.all)
+    }
+    return []
+  },
+  commitList(key, branch = 'origin/master') {
+    const { repo } = repositories[key]
+    if (repo) {
+      return repo.log({ '-30': true, [branch]: true })
+        .then(({ all = [] }) => all)
+    }
+    return []
+  },
+  deploy(key, br, p) {
+    const repository = repositories[key]
+    const { repo, progress } = repository
+    if (repo && (progress === 0 || progress === 100)) {
+      const start = Date.now()
+      this.progressing(repositories[key])
+      return repo.checkout('.')
+        .then(() => repo.pull())
+        .then(() => repo.checkout(br))
+        .then(() => repo.pull())
+        .then(() => this.build(p))
+        .then(() => {
+          clearInterval(repository.timer)
+          repository.progress = 100
+        })
+        .catch((msg) => {
+          console.log('====================\n', msg)
+          clearInterval(repository.timer)
+          repository.progress = 0
+        })
+        .finally(() => {
+          repository.deployTime = Date.now() - start
         })
     }
     return []
   },
-  commitList(key, branch) {
-    const repo = repos[key]
-    if (repo) {
-      return repo.getBranch(branch)
-        .then(reference => repo.checkoutRef(reference))
-        .then(async() => {
-          const walker = git.Revwalk.create(repo)
-          // 通过pushGlob来获取所有分支的提交记录
-          walker.pushHead()
-          const commits = await walker.getCommitsUntil(() => true)
-          return commits.map((commit) => {
-            const data = commit.date()
-            const d = data.toLocaleDateString()
-            const h = data.getHours()
-            const m = data.getMinutes()
-            return `${commit.sha().substr(0, 8)} [${d} ${h}:${m}] ${commit.author().name()} - ${commit.message().trim().substr(0, 100)}`
-          })
-            .filter((_, i) => i < 50)
-        }, () => [])
-    }
-    return []
+  build(p) {
+    return exec('npm run build', { cwd: p })
+    // .then(() => exec('pm2 restart app_h5'))
   },
-  pull(branch, options) {
-    return exec(`git pull origin/${branch} ${branch}`, options)
-  },
-  checkoutPull(branch, options) {
-    return this.pull(branch, options)
-      .then(() => exec(`git checkout ${branch}`, options))
-      .then(() => this.pull(branch, options))
+  progressing(r) {
+    const repository = r
+    const preTime = repository.deployTime / 100
+    repository.progress = 1
+    repository.timer = setInterval(() => {
+      const p = repository.progress
+      if (p < 99) {
+        repository.progress += 1
+      } else clearInterval(repository.timer)
+    }, preTime)
   },
 }
