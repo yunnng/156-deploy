@@ -27,16 +27,13 @@ module.exports = {
     }
     return []
   },
-  deploy(key, br, p) {
+  async deploy(key, br, p) {
     const repository = repositories[key]
     const { repo, progress } = repository
     if (repo && (progress === 0 || progress === 100)) {
       const start = Date.now()
       this.progressing(repositories[key])
       return repo.checkout('.')
-        .then(() => repo.pull())
-        .then(() => repo.checkout(br))
-        .then(() => repo.pull())
         .then(() => this.build(p))
         .then(() => {
           clearInterval(repository.timer)
@@ -67,5 +64,18 @@ module.exports = {
         repository.progress += 1
       } else clearInterval(repository.timer)
     }, preTime)
+  },
+  progressMap() {
+    return Object.values(repositories)
+      .map(({ key, progress, deployTime }) => ({
+        [key]: {
+          progress,
+          deployTime,
+        },
+      }))
+      .reduce((a, b) => ({
+        ...a,
+        ...b,
+      }), {})
   },
 }

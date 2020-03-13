@@ -6,8 +6,9 @@ import { withRouter } from 'react-router-dom'
 import styled from 'styled-components'
 import PropTypes from 'prop-types'
 import {
-  getBranchList, getCommitList, deploy, getProgress,
+  getBranchList, getCommitList, deploy,
 } from '../scripts/api'
+import { wsRouter } from '../common/util'
 
 const { Option } = Select
 
@@ -32,14 +33,32 @@ function Deploy(props) {
   const [branchList, setBranchList] = useState([])
   const [commitList, setCommitList] = useState([])
   const [progress, setProgress] = useState(100)
+  const [deployTime, setDeployTime] = useState(300 * 1000)
+
+  const wsInit = () => {
+    const ws = new WebSocket('ws:localhost:9001')
+    ws.onopen = () => {
+      console.log('open')
+    }
+    ws.onmessage = ({ data = '' }) => {
+      const { path, d } = JSON.parse(data)
+      if (path === wsRouter.open) {
+        setProgress(d[key].progress)
+        setDeployTime(d[key].deployTime)
+      } else if (path === wsRouter.deployResult) {
+        setProgress(d[key].progress)
+      }
+    }
+  }
   useEffect(() => {
     if (!key || !projectName) history.push('/list')
+    wsInit()
     const timer = setInterval(() => {
-      getProgress()
-        .then((data) => {
-          console.log(data)
-          setProgress(data[key])
-        })
+      // getProgress()
+      //   .then((data) => {
+      //     console.log(data)
+      //     setProgress(data[key])
+      //   })
     }, 1000)
     getBranchList(key)
       .then(async(res) => {
@@ -82,8 +101,21 @@ function Deploy(props) {
 
   const formatBr = br => br.replace('origin/', '')
 
+  const progressing = (p) => {
+    const preTime = deployTime / 100
+    // setDeployTime(1)
+    const timer = setTimeout(() => {
+      console.log(deployTime, p)
+      if (p < 99) {
+        setProgress(p + 1)
+        progressing(p + 1)
+      } else clearInterval(timer)
+    }, preTime)
+  }
+
   const deployBtnClick = () => {
     setProgress(1)
+    setTimeout(() => progressing(1), 100)
     deploy(key, formatBr(branch))
       .then((a) => {
         console.log(a)
@@ -98,6 +130,7 @@ function Deploy(props) {
     return `${_.hash.substr(0, 8)} [${d} ${h}:${m}] ${_.author_name} - ${_.message.trim().substr(0, 100)}`
   }
 
+  console.log(progress)
   return (
     <FormStyle {...layout} name='control-hooks'>
       <Form.Item

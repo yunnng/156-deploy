@@ -1,16 +1,28 @@
 const path = require('path')
 const express = require('express')
-const config = require('../config')
-const { emptyArrRes } = require('./../service/util')
+const WebSocket = require('ws')
+const { repositories } = require('../config')
+const { emptyArrRes, wsSend } = require('./../service/util')
 const repoOperation = require('../service/repositoriesOperation')
+const { wsRouter } = require('../src/common/util')
 const router = express.Router()
 
+const wss = new WebSocket.Server({ port: 9001 })
 
-router.get('/list', function(req, res, next) {
-  res.json({
-    code: 0,
-    data: Object.values(config.repositories),
+wss.on('connection', function connection(ws) {
+  ws.on('message', function incoming(message) {
+    console.log('received: %s', message)
   })
+
+  wsSend(ws, wsRouter.open, repoOperation.progressMap())
+})
+
+const list = {
+  code: 0,
+  data: Object.values(repositories),
+}
+router.get('/list', function(req, res, next) {
+  res.json(list)
 })
 
 router.get('/branchList', async function(req, res, next) {
@@ -42,8 +54,15 @@ router.get('/commitList', async function(req, res, next) {
 router.get('/deploy', function(req, res, next) {
   const { query: { key, br } } = req
   if (key) {
-    const p = path.resolve(__dirname, config.repositories[key].path)
+    const p = path.resolve(__dirname, repositories[key].path)
     repoOperation.deploy(key, br, p)
+      .then(() => {
+        wss.clients.forEach(function each(client) {
+          if (client.readyState === WebSocket.OPEN) {
+            wsSend(client, wsRouter.deployResult, repoOperation.progressMap())
+          }
+        })
+      })
   }
   return res.json(emptyArrRes)
 })
@@ -51,7 +70,7 @@ router.get('/deploy', function(req, res, next) {
 router.get('/getProgress', function(req, res, next) {
   res.json({
     code: 0,
-    data: Object.values(config.repositories)
+    data: Object.values(repositories)
       .map((repo) => ({
         [repo.key]: repo.progress,
       }))
