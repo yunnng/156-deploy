@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import {
-  Button, Form, Input, Select, Progress,
+  Button, Col, Form, Input, Progress, Row, Select,
 } from 'antd'
 import { withRouter } from 'react-router-dom'
 import styled from 'styled-components'
@@ -16,14 +16,25 @@ const FormStyle = styled(Form)`
   max-width: 800px;
   margin: 60px 100px;
   width: 100%;
+  
+  .stdout {
+    border: 1px solid #dedede;
+    background-color: #f8f8f8;
+  }
 `
 
 const layout = {
-  labelCol: { span: 8 },
-  wrapperCol: { span: 16 },
+  labelCol: { span: 6 },
+  wrapperCol: { span: 18 },
 }
 const tailLayout = {
   wrapperCol: { offset: 8, span: 16 },
+}
+let progressTimer = null
+const statusMap = {
+  0: 'active',
+  1: 'success',
+  2: 'exception',
 }
 function Deploy(props) {
   const { history } = props
@@ -32,7 +43,9 @@ function Deploy(props) {
   const [commit, setCommit] = useState('')
   const [branchList, setBranchList] = useState([])
   const [commitList, setCommitList] = useState([])
+  const [status, setStatus] = useState(-1)
   const [progress, setProgress] = useState(100)
+  const [stdout, setStdout] = useState('')
   const [deployTime, setDeployTime] = useState(300 * 1000)
 
   const wsInit = () => {
@@ -43,10 +56,14 @@ function Deploy(props) {
     ws.onmessage = ({ data = '' }) => {
       const { path, d } = JSON.parse(data)
       if (path === wsRouter.open) {
-        setProgress(d[key].progress)
+        setStatus(d[key].status)
         setDeployTime(d[key].deployTime)
       } else if (path === wsRouter.deployResult) {
-        setProgress(d[key].progress)
+        if (d.key === key) {
+          setStatus(d.status)
+          setStdout(d.msg)
+          clearTimeout(progressTimer)
+        }
       }
     }
   }
@@ -101,24 +118,30 @@ function Deploy(props) {
 
   const formatBr = br => br.replace('origin/', '')
 
-  const progressing = (p) => {
-    const preTime = deployTime / 100
-    // setDeployTime(1)
+  const progressing = (time, p) => {
+    const fps = 60 // 更新率
+    const times = time / fps
+    const preProgress = 100 / times
     const timer = setTimeout(() => {
-      console.log(deployTime, p)
       if (p < 99) {
-        setProgress(p + 1)
-        progressing(p + 1)
+        const nextP = p + preProgress
+        console.log(nextP, +(nextP).toFixed(1))
+        setProgress(+(nextP).toFixed(1))
+        progressTimer = progressing(time - 100, nextP)
       } else clearInterval(timer)
-    }, preTime)
+    }, fps)
+    return timer
   }
 
   const deployBtnClick = () => {
-    setProgress(1)
-    setTimeout(() => progressing(1), 100)
     deploy(key, formatBr(branch))
-      .then((a) => {
-        console.log(a)
+      .then(({ start, deployTime: d, status: s }) => {
+        setStatus(s)
+        setProgress(0)
+        const timer = progressing(deployTime, 0)
+        const leftTime = d - Date.now() + start
+        clearTimeout(timer)
+        progressing(leftTime, Math.round(1 - leftTime / deployTime))
       })
   }
 
@@ -130,7 +153,6 @@ function Deploy(props) {
     return `${_.hash.substr(0, 8)} [${d} ${h}:${m}] ${_.author_name} - ${_.message.trim().substr(0, 100)}`
   }
 
-  console.log(progress)
   return (
     <FormStyle {...layout} name='control-hooks'>
       <Form.Item
@@ -189,13 +211,30 @@ function Deploy(props) {
         </Select>
       </Form.Item>
       <Form.Item {...tailLayout}>
-        {(progress === 0 || progress === 100) ? (
-          <Button type='primary' htmlType='submit' onClick={deployBtnClick} disabled={!commit}>
-            发布
-          </Button>
-        ) : (
-          <Progress type='circle' percent={progress} width={80} />
+        <Row>
+          <Col span={6}>
+            <Button
+              type='primary'
+              htmlType='submit'
+              onClick={deployBtnClick}
+              disabled={!commit}
+              loading={!status}
+            >{status ? '发布' : '发布中'}
+            </Button>
+          </Col>
+          <Col span={18} style={{ textAlign: 'right' }}>
+            {Boolean(statusMap[status]) && (
+              <Progress percent={progress} status={statusMap[status]} width={80} />
+            )}
+          </Col>
+        </Row>
+      </Form.Item>
+      <Form.Item {...tailLayout}>
+        {/* eslint-disable react/no-danger */}
+        {stdout && (
+          <div className='stdout' dangerouslySetInnerHTML={{ __html: stdout }} />
         )}
+        {/* eslint-enable react/no-danger */}
       </Form.Item>
     </FormStyle>
   )

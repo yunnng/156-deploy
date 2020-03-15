@@ -18,18 +18,16 @@ const App = styled.div`
   display: flex;
 `
 
-export default function () {
-  return (
-    <App className='App'>
-      <Router>
-        <Menus />
-        <Switch>
-          <Route exact path='/list' component={List} />
-          <Route exact path='/query' />
-          <Route exact path='/deploy' component={Deploy} />
-          <Redirect from='/' to='/list' />
-        </Switch>
-      </Router>
-    </App>
-  )
-}
+export default () => (
+  <App className='App'>
+    <Router>
+      <Menus />
+      <Switch>
+        <Route exact path='/list' component={List} />
+        <Route exact path='/query' />
+        <Route exact path='/deploy' component={Deploy} />
+        <Redirect from='/' to='/list' />
+      </Switch>
+    </Router>
+  </App>
+)

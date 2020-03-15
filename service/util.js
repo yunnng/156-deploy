@@ -7,10 +7,11 @@ module.exports = {
   },
   exec(cmd, options = {}) {
     return new Promise((resolve, reject) => {
-      exec(cmd, options, (err, stdout) => {
+      exec(cmd, options, (err, stdout, stderr) => {
         if (err) {
-          const r = { cmd, p: options.cwd || './', err: err.message }
+          const r = { cmd, p: options.cwd || './', err: stderr }
           reject(r)
+          return
         }
         resolve(stdout)
       })

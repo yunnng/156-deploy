@@ -17,12 +17,11 @@ wss.on('connection', function connection(ws) {
   wsSend(ws, wsRouter.open, repoOperation.progressMap())
 })
 
-const list = {
-  code: 0,
-  data: Object.values(repositories),
-}
 router.get('/list', function(req, res, next) {
-  res.json(list)
+  res.json({
+    code: 0,
+      data: Object.values(repositories),
+  })
 })
 
 router.get('/branchList', async function(req, res, next) {
@@ -53,18 +52,31 @@ router.get('/commitList', async function(req, res, next) {
 
 router.get('/deploy', function(req, res, next) {
   const { query: { key, br } } = req
+  const start = Date.now()
+  const repository = repositories[key]
+  const p = path.resolve(__dirname, repository.path)
   if (key) {
-    const p = path.resolve(__dirname, repositories[key].path)
-    repoOperation.deploy(key, br, p)
-      .then(() => {
+    repoOperation.deploy(key, br, p, start)
+      .then((data) => {
+        console.log('========================\nres\n=========', data.msg)
         wss.clients.forEach(function each(client) {
           if (client.readyState === WebSocket.OPEN) {
-            wsSend(client, wsRouter.deployResult, repoOperation.progressMap())
+            wsSend(client, wsRouter.deployResult, {
+              key,
+              ...data,
+            })
           }
         })
       })
   }
-  return res.json(emptyArrRes)
+  return res.json({
+    code: 0,
+    data: {
+      status: 0,
+      start,
+      deployTime: repository.deployTime,
+    },
+  })
 })
 
 router.get('/getProgress', function(req, res, next) {

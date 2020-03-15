@@ -6,7 +6,7 @@ Object.values(repositories).forEach(async(r) => {
   const repository = r
   const { path } = repository
   const absolutePath = require('path').resolve(__dirname, path)
-  repository.progress = 100
+  repository.status = -1 // 0:发布中 1：发布成功 2：发布失败
   repository.repo = await git(absolutePath)
 })
 
@@ -27,25 +27,35 @@ module.exports = {
     }
     return []
   },
-  async deploy(key, br, p) {
+  async deploy(key, br, p, s) {
     const repository = repositories[key]
-    const { repo, progress } = repository
-    if (repo && (progress === 0 || progress === 100)) {
-      const start = Date.now()
-      this.progressing(repositories[key])
+    const { repo, status } = repository
+    if (repo && status) {
+      // this.progressing(repositories[key])
+      repositories[key].startTime = s
       return repo.checkout('.')
+        .then(() => repo.pull())
+        .then(() => repo.checkout(br))
+        .then(() => repo.pull())
         .then(() => this.build(p))
-        .then(() => {
+        .then(async(msg) => {
           clearInterval(repository.timer)
-          repository.progress = 100
+          return {
+            status: 1,
+            msg,
+          }
         })
-        .catch((msg) => {
-          console.log('====================\n', msg)
+        .catch(async(d) => {
+          const { err, message } = d
+          // console.log('====================\n', msg.err)
           clearInterval(repository.timer)
-          repository.progress = 0
+          return {
+            status: 2,
+            msg: err || message,
+          }
         })
         .finally(() => {
-          repository.deployTime = Date.now() - start
+          repository.deployTime = Date.now() - s
         })
     }
     return []
@@ -65,12 +75,16 @@ module.exports = {
       } else clearInterval(repository.timer)
     }, preTime)
   },
+  /**
+   * 返回所有仓库状态对象
+   * @returns {{app_h5: {status: 1}, ...}}
+   */
   progressMap() {
     return Object.values(repositories)
-      .map(({ key, progress, deployTime }) => ({
+      .map(({ key, deployTime, status }) => ({
         [key]: {
-          progress,
           deployTime,
+          status,
         },
       }))
       .reduce((a, b) => ({
