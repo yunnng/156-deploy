@@ -31,11 +31,10 @@ export async function getCommitList(key, branch) {
     .then(res => res.data)
 }
 
-export async function deploy(key, br) {
-  return axios.get('./api/deploy', {
+export async function installDep(key) {
+  return axios.get('./api/installDependencies', {
     params: {
       key,
-      br,
     },
   })
     .then(res => res.data)

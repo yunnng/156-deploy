@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import {
-  Button, Col, Form, Input, Progress, Row, Select,
+  Button, Col, Form, Input, Row, Select,
 } from 'antd'
 import { withRouter } from 'react-router-dom'
 import styled from 'styled-components'
 import PropTypes from 'prop-types'
 import {
-  getBranchList, getCommitList, deploy,
+  getBranchList, getCommitList, deploy, installDep,
 } from '../scripts/api'
 import { wsRouter } from '../common/util'
 
@@ -17,6 +17,16 @@ const FormStyle = styled(Form)`
   margin: 60px 100px;
   width: 100%;
   
+  .progress-item {
+    > span {
+      min-width: 120px;
+      display: inline-block;
+      
+      &.progress {
+        text-align: left;
+      }
+    }
+  }
   .stdout {
     padding: 30px;
     border-radius: 4px;
@@ -46,6 +56,7 @@ function Deploy(props) {
   const [branchList, setBranchList] = useState([])
   const [commitList, setCommitList] = useState([])
   const [status, setStatus] = useState(-1)
+  const [spentTime, setSpentTime] = useState(0)
   const [progress, setProgress] = useState(100)
   const [stdout, setStdout] = useState('')
   const [deployTime, setDeployTime] = useState(300 * 1000)
@@ -120,16 +131,16 @@ function Deploy(props) {
 
   const formatBr = br => br.replace('origin/', '')
 
-  const progressing = (time, p) => {
+  const progressing = (time, p, spent = 0) => {
     const fps = 60 // 更新率
     const times = time / fps
     const preProgress = 100 / times
     const timer = setTimeout(() => {
-      if (p < 99) {
-        const nextP = p + preProgress
-        console.log(nextP, +(nextP).toFixed(1))
+      setSpentTime(spent + fps)
+      const nextP = p + preProgress
+      if (nextP < 100) {
         setProgress(+(nextP).toFixed(1))
-        progressTimer = progressing(time - 100, nextP)
+        progressTimer = progressing(time - 100, nextP, spent + fps)
       } else clearInterval(timer)
     }, fps)
     return timer
@@ -147,12 +158,32 @@ function Deploy(props) {
       })
   }
 
+  const depBtnClick = () => {
+    installDep(key)
+      .then(({ start, deployTime: d, status: s }) => {
+        setStatus(s)
+        setProgress(0)
+        const timer = progressing(deployTime, 0)
+        const leftTime = d - Date.now() + start
+        clearTimeout(timer)
+        progressing(leftTime, Math.round(1 - leftTime / deployTime))
+      })
+  }
+
   const formatCommitList = (_) => {
     const date = new Date(_.date)
     const d = date.toLocaleDateString()
     const h = date.getHours()
     const m = date.getMinutes()
     return `${_.hash.substr(0, 8)} [${d} ${h}:${m}] ${_.author_name} - ${_.message.trim().substr(0, 100)}`
+  }
+
+  const formatTime = (millisecond) => {
+    const f = n => (n > 9 ? n : `0${n}`)
+    console.log('millisecond', millisecond)
+    const m = Math.floor(millisecond / 1000 / 60)
+    const s = Math.round(millisecond / 1000 - m * 60 * 1000)
+    return `${f(m)} : ${f(s)}`
   }
 
   return (
@@ -214,21 +245,35 @@ function Deploy(props) {
       </Form.Item>
       <Form.Item {...tailLayout}>
         <Row>
-          <Col span={6}>
+          <Col span={5}>
             <Button
               type='primary'
               htmlType='submit'
               onClick={deployBtnClick}
               disabled={!commit}
               loading={!status}
-            >{status ? '发布' : '发布中'}
+            >发布
             </Button>
           </Col>
-          <Col span={18} style={{ textAlign: 'right' }}>
+          <Col className='progress-item' span={15}>
             {Boolean(statusMap[status]) && (
-              <Progress percent={progress} status={statusMap[status]} width={80} />
+              <>
+                <span className='progress'>进度：{progress}%</span>
+                <span className='spent-time'>已用时：{formatTime(spentTime)}</span>
+                <span className='expected-time'>预计用时：{formatTime(deployTime)}</span>
+              </>
             )}
           </Col>
+          {stdout.includes('Cannot find module') && (
+            <Col span={4} style={{ textAlign: 'right' }}>
+              <Button
+                onClick={depBtnClick}
+                disabled={!commit}
+                loading={!status}
+              >安装依赖
+              </Button>
+            </Col>
+          )}
         </Row>
       </Form.Item>
       <Form.Item wrapperCol={{ offset: 4 }}>
