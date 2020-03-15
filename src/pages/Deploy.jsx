@@ -18,6 +18,8 @@ const FormStyle = styled(Form)`
   width: 100%;
   
   .stdout {
+    padding: 30px;
+    border-radius: 4px;
     border: 1px solid #dedede;
     background-color: #f8f8f8;
   }
@@ -28,7 +30,7 @@ const layout = {
   wrapperCol: { span: 18 },
 }
 const tailLayout = {
-  wrapperCol: { offset: 8, span: 16 },
+  wrapperCol: { offset: 6, span: 18 },
 }
 let progressTimer = null
 const statusMap = {
@@ -229,7 +231,7 @@ function Deploy(props) {
           </Col>
         </Row>
       </Form.Item>
-      <Form.Item {...tailLayout}>
+      <Form.Item wrapperCol={{ offset: 4 }}>
         {/* eslint-disable react/no-danger */}
         {stdout && (
           <div className='stdout' dangerouslySetInnerHTML={{ __html: stdout }} />
