@@ -1,25 +1,28 @@
 import React, { useEffect, useState } from 'react'
 import {
-  Button, Col, Form, Input, Row, Select,
+  Button, Col, Form, Input, Row, Select, Typography,
 } from 'antd'
 import { withRouter } from 'react-router-dom'
 import styled from 'styled-components'
 import PropTypes from 'prop-types'
+// eslint-disable
 import {
   getBranchList, getCommitList, deploy, installDep,
 } from '../scripts/api'
+// eslint-enable
 import { wsRouter } from '../common/util'
 
 const { Option } = Select
+const { Title } = Typography
 
 const FormStyle = styled(Form)`
-  max-width: 800px;
+  max-width: 700px;
   margin: 60px 100px;
   width: 100%;
   
   .progress-item {
     > span {
-      min-width: 120px;
+      min-width: 110px;
       display: inline-block;
       
       &.progress {
@@ -29,25 +32,22 @@ const FormStyle = styled(Form)`
   }
   .stdout {
     padding: 30px;
+    height: 600px;
     border-radius: 4px;
     border: 1px solid #dedede;
     background-color: #f8f8f8;
+    overflow-y: auto;
   }
 `
 
 const layout = {
-  labelCol: { span: 6 },
-  wrapperCol: { span: 18 },
+  labelCol: { span: 3 },
+  wrapperCol: { span: 21 },
 }
 const tailLayout = {
-  wrapperCol: { offset: 6, span: 18 },
+  wrapperCol: { offset: 3 },
 }
 let progressTimer = null
-const statusMap = {
-  0: 'active',
-  1: 'success',
-  2: 'exception',
-}
 function Deploy(props) {
   const { history } = props
   const { location: { state: { key, projectName } = {} } } = history
@@ -61,21 +61,47 @@ function Deploy(props) {
   const [stdout, setStdout] = useState('')
   const [deployTime, setDeployTime] = useState(300 * 1000)
 
+  /**
+   * @time 剩余时间（毫秒）
+   * @p 当前进度
+   * @spend 已用时间
+   */
+  const progressing = (time, p, spent = 0) => {
+    const fps = 60 // 更新率
+    const times = time / fps
+    const preProgress = p / times
+    const timer = setTimeout(() => {
+      setSpentTime(spent + fps)
+      const nextP = p + preProgress
+      if (nextP < 100) {
+        setProgress(+(nextP).toFixed(1))
+        progressTimer = progressing(time - fps, nextP, spent + fps)
+      } else clearInterval(timer)
+    }, fps)
+    return timer
+  }
+
   const wsInit = () => {
     const ws = new WebSocket('ws:localhost:9001')
-    ws.onopen = () => {
-      console.log('open')
-    }
     ws.onmessage = ({ data = '' }) => {
       const { path, d } = JSON.parse(data)
       if (path === wsRouter.open) {
         setStatus(d[key].status)
         setDeployTime(d[key].deployTime)
+        if (d[key].status === 1) {
+          const now = Date.now()
+          const { startTime, deployTime: deployT } = d[key]
+          const leftTime = deployT - now + startTime
+          progressing(leftTime, Math.round(1 - leftTime / deployTime), now - startTime)
+        }
       } else if (path === wsRouter.deployResult) {
         if (d.key === key) {
           setStatus(d.status)
-          setStdout(d.msg)
+          setStdout(d.msg || '')
           clearTimeout(progressTimer)
+          if (d.status === 0) {
+            setProgress(100)
+          }
         }
       }
     }
@@ -131,42 +157,22 @@ function Deploy(props) {
 
   const formatBr = br => br.replace('origin/', '')
 
-  const progressing = (time, p, spent = 0) => {
-    const fps = 60 // 更新率
-    const times = time / fps
-    const preProgress = 100 / times
-    const timer = setTimeout(() => {
-      setSpentTime(spent + fps)
-      const nextP = p + preProgress
-      if (nextP < 100) {
-        setProgress(+(nextP).toFixed(1))
-        progressTimer = progressing(time - 100, nextP, spent + fps)
-      } else clearInterval(timer)
-    }, fps)
-    return timer
-  }
-
   const deployBtnClick = () => {
     deploy(key, formatBr(branch))
       .then(({ start, deployTime: d, status: s }) => {
         setStatus(s)
         setProgress(0)
-        const timer = progressing(deployTime, 0)
+        // const timer = progressing(deployTime, 0)
         const leftTime = d - Date.now() + start
-        clearTimeout(timer)
+        // clearTimeout(timer)
         progressing(leftTime, Math.round(1 - leftTime / deployTime))
       })
   }
 
   const depBtnClick = () => {
     installDep(key)
-      .then(({ start, deployTime: d, status: s }) => {
+      .then(({ status: s }) => {
         setStatus(s)
-        setProgress(0)
-        const timer = progressing(deployTime, 0)
-        const leftTime = d - Date.now() + start
-        clearTimeout(timer)
-        progressing(leftTime, Math.round(1 - leftTime / deployTime))
       })
   }
 
@@ -180,11 +186,12 @@ function Deploy(props) {
 
   const formatTime = (millisecond) => {
     const f = n => (n > 9 ? n : `0${n}`)
-    console.log('millisecond', millisecond)
     const m = Math.floor(millisecond / 1000 / 60)
-    const s = Math.round(millisecond / 1000 - m * 60 * 1000)
-    return `${f(m)} : ${f(s)}`
+    const s = Math.round(millisecond / 1000 - m * 60)
+    return `${f(m)}:${f(s)}`
   }
+
+  const installDepStatus = s => [3, 4].includes(s)
 
   return (
     <FormStyle {...layout} name='control-hooks'>
@@ -250,13 +257,13 @@ function Deploy(props) {
               type='primary'
               htmlType='submit'
               onClick={deployBtnClick}
-              disabled={!commit}
-              loading={!status}
+              disabled={!commit || installDepStatus(status)}
+              loading={status === 1}
             >发布
             </Button>
           </Col>
           <Col className='progress-item' span={15}>
-            {Boolean(statusMap[status]) && (
+            {[0, 1, 2].includes(status) && (
               <>
                 <span className='progress'>进度：{progress}%</span>
                 <span className='spent-time'>已用时：{formatTime(spentTime)}</span>
@@ -268,15 +275,19 @@ function Deploy(props) {
             <Col span={4} style={{ textAlign: 'right' }}>
               <Button
                 onClick={depBtnClick}
-                disabled={!commit}
-                loading={!status}
+                loading={status === 4}
               >安装依赖
               </Button>
             </Col>
           )}
         </Row>
       </Form.Item>
-      <Form.Item wrapperCol={{ offset: 4 }}>
+      {status === 0 && (
+        <Form.Item wrapperCol={{ offset: 1 }}>
+          <Title level={3}>发布成功</Title>
+        </Form.Item>
+      )}
+      <Form.Item wrapperCol={{ offset: 1 }}>
         {/* eslint-disable react/no-danger */}
         {stdout && (
           <div className='stdout' dangerouslySetInnerHTML={{ __html: stdout }} />

@@ -2,7 +2,7 @@ const path = require('path')
 const express = require('express')
 const WebSocket = require('ws')
 const { repositories } = require('../config')
-const { emptyArrRes, wsSend } = require('./../service/util')
+const { emptyArrRes, updateRepoStatus, wsSend } = require('./../service/util')
 const repoOperation = require('../service/repositoriesOperation')
 const { wsRouter } = require('../src/common/util')
 const router = express.Router()
@@ -58,7 +58,6 @@ router.get('/deploy', function(req, res, next) {
   if (key) {
     repoOperation.deploy(key, br, p, start)
       .then((data) => {
-        console.log('========================\nres\n=========', data.msg)
         wss.clients.forEach(function each(client) {
           if (client.readyState === WebSocket.OPEN) {
             wsSend(client, wsRouter.deployResult, {
@@ -69,12 +68,40 @@ router.get('/deploy', function(req, res, next) {
         })
       })
   }
+  updateRepoStatus(repository, { status: 1 })
   return res.json({
     code: 0,
     data: {
-      status: 0,
+      status: 1,
       start,
       deployTime: repository.deployTime,
+    },
+  })
+})
+
+router.get('/installDependencies', function(req, res, next) {
+  const { query: { key, br } } = req
+  const start = Date.now()
+  const repository = repositories[key]
+  const p = path.resolve(__dirname, repository.path)
+  if (key) {
+    repoOperation.installDependencies(key, br, p, start)
+      .then((data) => {
+        wss.clients.forEach(function each(client) {
+          if (client.readyState === WebSocket.OPEN) {
+            wsSend(client, wsRouter.deployResult, {
+              key,
+              ...data,
+            })
+          }
+        })
+      })
+  }
+  updateRepoStatus(repository, { status: 4 })
+  return res.json({
+    code: 0,
+    data: {
+      status: 4,
     },
   })
 })

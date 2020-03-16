@@ -1,16 +1,22 @@
 // const chalk = require('chalk')
 
 const repositories = {
-  '156-deploy': {
-    key: '156-deploy', // 两个key需完全一致
-    name: '156-deploy',
-    path: '../../156/156-deploy',
-    deployTime: 300 * 1000,
-  },
-  app_h5: {
-    key: 'app_h5',
-    name: 'app_h5',
-    path: '../../156/app_h5',
+  // '156-deploy': {
+  //   key: '156-deploy', // 两个key需完全一致
+  //   name: '156-deploy',
+  //   path: '../../156-deploy',
+  //   deployTime: 300 * 1000,
+  // },
+  // app_h5: {
+  //   key: 'app_h5',
+  //   name: 'app_h5',
+  //   path: '../../app_h5',
+  //   deployTime: 300 * 1000,
+  // },
+  app_h5_2: {
+    key: 'app_h5_2',
+    name: 'app_h5_2',
+    path: '../../app_h5_2',
     deployTime: 300 * 1000,
   },
 }
