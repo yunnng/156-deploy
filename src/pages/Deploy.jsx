@@ -82,7 +82,7 @@ function Deploy(props) {
   }
 
   const wsInit = () => {
-    const ws = new WebSocket('ws:localhost:9001')
+    const ws = new WebSocket(`ws:${window.location.hostname}:9001`)
     ws.onmessage = ({ data = '' }) => {
       const { path, d } = JSON.parse(data)
       if (path === wsRouter.open) {
@@ -290,7 +290,7 @@ function Deploy(props) {
       <Form.Item wrapperCol={{ offset: 1 }}>
         {/* eslint-disable react/no-danger */}
         {stdout && (
-          <div className='stdout' dangerouslySetInnerHTML={{ __html: stdout }} />
+          <pre className='stdout' dangerouslySetInnerHTML={{ __html: stdout }} />
         )}
         {/* eslint-enable react/no-danger */}
       </Form.Item>

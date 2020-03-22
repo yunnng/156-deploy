@@ -13,6 +13,18 @@ const repositories = {
   //   path: '../../app_h5',
   //   deployTime: 300 * 1000,
   // },
+  'pc-1': {
+    key: 'pc-1',
+    name: 'pc-1',
+    path: '../../shein_w',
+    deployTime: 300 * 1000,
+  },
+  'pc-2': {
+    key: 'pc-2',
+    name: 'pc-2',
+    path: '../../pc-2',
+    deployTime: 300 * 1000,
+  },
   app_h5_2: {
     key: 'app_h5_2',
     name: 'app_h5_2',
