@@ -2,12 +2,20 @@ const git = require('simple-git/promise')
 const { repositories } = require('../config')
 const { canDeploy, exec, updateRepoStatus } = require('./../service/util')
 
+const repoStates = {
+  deployer: '',
+  version: '',
+  describe: '',
+  status: -1,
+}
+
 Object.values(repositories).forEach(async(r) => {
   const repository = r
   const { path } = repository
-  const absolutePath = require('path').resolve(__dirname, path)
+  // const absolutePath = require('path').resolve(__dirname, '../../../practice', path)
+  const absolutePath = require('path').resolve(__dirname, '../..', path)
   // -1：初始状态 0:发布成功 1：发布中 2：发布失败 3：需要安装依赖 4：安装依赖中 5：安装依赖完成（仅前端使用）6：安装依赖失败（仅前端使用）
-  repository.status = -1
+  Object.assign(repository, repoStates)
   repository.repo = await git(absolutePath)
 })
 
@@ -29,13 +37,20 @@ module.exports = {
     }
     return []
   },
-  async deploy(key, br, p, s) {
+  async deploy({
+    key,
+    br,
+    commit,
+    deployer,
+    p,
+    start,
+  }) {
     const repository = repositories[key]
     const { repo, status } = repository
     if (repo && canDeploy(status)) {
       // this.progressing(repositories[key])
       repository.status = 1
-      repository.startTime = s
+      repository.startTime = start
       return repo.checkout('.')
         .then(() => repo.pull())
         .then(() => repo.checkout(br))
@@ -43,9 +58,14 @@ module.exports = {
         .then(() => this.build(p))
         .then(() => exec(`pm2 restart ${key}`))
         .then(async(msg) => {
-          updateRepoStatus(repository, { status: 0 })
-          return {
+          const r = {
             status: 0,
+            commit,
+            deployer,
+          }
+          updateRepoStatus(repository, r)
+          return {
+            ...r,
             msg,
           }
         })
@@ -58,7 +78,7 @@ module.exports = {
           }
         })
         .finally(() => {
-          repository.deployTime = Date.now() - s
+          repository.deployTime = Date.now() - start
         })
     }
     return []

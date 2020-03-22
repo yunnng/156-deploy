@@ -4,4 +4,8 @@ module.exports = {
     open: '/open',
     deployResult: '/deploy/result',
   },
+  getUser() {
+    const { deployer = '' } = localStorage
+    return deployer
+  },
 }

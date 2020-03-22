@@ -10,7 +10,7 @@ import {
   getBranchList, getCommitList, deploy, installDep,
 } from '../scripts/api'
 // eslint-enable
-import { wsRouter } from '../common/util'
+import { wsRouter, getUser } from '../common/util'
 
 const { Option } = Select
 const { Title } = Typography
@@ -51,6 +51,7 @@ let progressTimer = null
 function Deploy(props) {
   const { history } = props
   const { location: { state: { key, projectName } = {} } } = history
+  const [deployer, setDeployer] = useState('')
   const [branch, setBranch] = useState('')
   const [commit, setCommit] = useState('')
   const [branchList, setBranchList] = useState([])
@@ -63,18 +64,16 @@ function Deploy(props) {
 
   /**
    * @time 剩余时间（毫秒）
-   * @p 当前进度
+   * @p 当前进度（小于1）
    * @spend 已用时间
    */
-  const progressing = (time, p, spent = 0) => {
-    const fps = 60 // 更新率
-    const times = time / fps
-    const preProgress = p / times
+  const progressing = (time, p, spent = 0, dTime = deployTime) => {
+    const fps = 60 // 更新率 ms
     const timer = setTimeout(() => {
       setSpentTime(spent + fps)
-      const nextP = p + preProgress
-      if (nextP < 100) {
-        setProgress(+(nextP).toFixed(1))
+      const nextP = (spent + fps) / dTime
+      if (nextP < 1) {
+        setProgress(+(nextP * 100).toFixed(1)) // 转百分制
         progressTimer = progressing(time - fps, nextP, spent + fps)
       } else clearInterval(timer)
     }, fps)
@@ -90,9 +89,10 @@ function Deploy(props) {
         setDeployTime(d[key].deployTime)
         if (d[key].status === 1) {
           const now = Date.now()
-          const { startTime, deployTime: deployT } = d[key]
-          const leftTime = deployT - now + startTime
-          progressing(leftTime, Math.round(1 - leftTime / deployTime), now - startTime)
+          const { startTime, deployTime: dTime } = d[key]
+          const leftTime = dTime - now + startTime
+          progressing(leftTime, Math.round(1 - leftTime / dTime), now - startTime,
+            d[key].deployTime)
         }
       } else if (path === wsRouter.deployResult) {
         if (d.key === key) {
@@ -107,7 +107,10 @@ function Deploy(props) {
     }
   }
   useEffect(() => {
-    if (!key || !projectName) history.push('/list')
+    const d = getUser()
+    setDeployer(d)
+    if (!d || !key || !projectName) history.push('/list')
+    setDeployer(getUser())
     wsInit()
     const timer = setInterval(() => {
       // getProgress()
@@ -126,7 +129,6 @@ function Deploy(props) {
         return master || ''
       })
     return () => {
-      console.log(123)
       clearInterval(timer)
     }
   }, [])
@@ -158,7 +160,12 @@ function Deploy(props) {
   const formatBr = br => br.replace('origin/', '')
 
   const deployBtnClick = () => {
-    deploy(key, formatBr(branch))
+    deploy({
+      key,
+      br: formatBr(branch),
+      commit,
+      deployer,
+    })
       .then(({ start, deployTime: d, status: s }) => {
         setStatus(s)
         setProgress(0)

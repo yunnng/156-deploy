@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
-import { Menu } from 'antd'
+import React, { useEffect, useState } from 'react'
+import { Button, Menu } from 'antd'
 import { withRouter } from 'react-router-dom'
 import PropTypes from 'prop-types'
 import styled from 'styled-components'
+import { getUser } from '../common/util'
 
 const { Item } = Menu
 
@@ -13,6 +14,11 @@ const MenuStyle = styled(Menu)`
 
 function Menus(props) {
   const [current, setCurrent] = useState('list')
+  const [user, setUser] = useState('')
+
+  useEffect(() => {
+    setUser(getUser())
+  }, [])
 
   const handleClick = (e) => {
     const { history } = props
@@ -26,6 +32,11 @@ function Menus(props) {
       selectedKeys={[current]}
       mode='inline'
     >
+      <Item disabled>
+        用户：{user || (
+        <Button type='link' onClick={() => setUser(getUser())}>刷新</Button>
+      )}
+      </Item>
       <Item key='list'>
         可发布项目
       </Item>

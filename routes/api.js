@@ -51,12 +51,19 @@ router.get('/commitList', async function(req, res, next) {
 })
 
 router.get('/deploy', function(req, res, next) {
-  const { query: { key, br } } = req
+  const { query: { key, br, commit, deployer } } = req
   const start = Date.now()
   const repository = repositories[key]
   const p = path.resolve(__dirname, repository.path)
   if (key) {
-    repoOperation.deploy(key, br, p, start)
+    repoOperation.deploy({
+      key,
+      br,
+      commit,
+      deployer,
+      p,
+      start,
+    })
       .then((data) => {
         wss.clients.forEach(function each(client) {
           if (client.readyState === WebSocket.OPEN) {
@@ -110,13 +117,20 @@ router.get('/getProgress', function(req, res, next) {
   res.json({
     code: 0,
     data: Object.values(repositories)
-      .map((repo) => ({
-        [repo.key]: repo.progress,
+      .map((repository) => ({
+        [repository.key]: repository.progress,
       }))
       .reduce((a, b) => ({
         ...a,
         ...b,
       }), {}),
+  })
+})
+
+router.get('/statusData', function(req, res, next) {
+  res.json({
+    code: 0,
+    data: repositories,
   })
 })
 

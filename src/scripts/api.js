@@ -31,12 +31,9 @@ export async function getCommitList(key, branch) {
     .then(res => res.data)
 }
 
-export async function deploy(key, br) {
+export async function deploy(params) {
   return axios.get('./api/deploy', {
-    params: {
-      key,
-      br,
-    },
+    params,
   })
     .then(res => res.data)
 }

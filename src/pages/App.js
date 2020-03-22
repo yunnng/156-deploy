@@ -1,6 +1,7 @@
 import React from 'react'
 import { BrowserRouter as Router, Route, Switch, Redirect } from 'react-router-dom'
 import styled from 'styled-components'
+import SayHello from './SayHello'
 import Menus from './Menu'
 import Deploy from './Deploy'
 import List from './List'
@@ -20,6 +21,7 @@ const App = styled.div`
 
 export default () => (
   <App className='App'>
+    <SayHello />
     <Router>
       <Menus />
       <Switch>
