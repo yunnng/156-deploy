@@ -1,6 +1,8 @@
 const git = require('simple-git/promise')
 const { repositories } = require('../config')
-const { canDeploy, exec, updateRepoStatus } = require('./../service/util')
+const {
+  canDeploy, exec, updateRepoStatus, promiseStack,
+} = require('./../service/util')
 
 const repoStates = {
   deployer: '',
@@ -12,11 +14,16 @@ const repoStates = {
 Object.values(repositories).forEach(async(r) => {
   const repository = r
   const { path } = repository
-  // const absolutePath = require('path').resolve(__dirname, '../../../practice', path)
-  const absolutePath = require('path').resolve(__dirname, '../..', path)
   // -1：初始状态 0:发布成功 1：发布中 2：发布失败 3：需要安装依赖 4：安装依赖中 5：安装依赖完成（仅前端使用）6：安装依赖失败（仅前端使用）
   Object.assign(repository, repoStates)
-  repository.repo = await git(absolutePath)
+  repository.repo = await git(path)
+  repository.repo.checkIsRepo()
+    .then((isRepo) => {
+      repository.isRepo = isRepo
+    })
+    .catch(() => {
+      console.error(`path: ${path} not a git repository.`)
+    })
 })
 
 module.exports = {
@@ -42,7 +49,7 @@ module.exports = {
     br,
     commit,
     deployer,
-    p,
+    path,
     start,
   }) {
     const repository = repositories[key]
@@ -52,16 +59,21 @@ module.exports = {
       repository.status = 1
       repository.startTime = start
       return repo.checkout('.')
-        .then(() => repo.pull())
-        .then(() => repo.checkout(br))
-        .then(() => repo.pull())
-        .then(() => this.build(p))
-        .then(() => exec(`pm2 restart ${key}`))
+        .then(() => repo.fetch())
+        .then(() => repo.checkout(commit || br))
+        .then(async() => {
+          if (commit) {
+            return null
+          }
+          return repo.pull()
+        })
+        .then(() => promiseStack(repository.cmdList, path))
         .then(async(msg) => {
           const r = {
             status: 0,
             commit,
             deployer,
+            deployTime: Date.now() - start,
           }
           updateRepoStatus(repository, r)
           return {
@@ -76,9 +88,6 @@ module.exports = {
             status: 2,
             msg: err || message,
           }
-        })
-        .finally(() => {
-          repository.deployTime = Date.now() - start
         })
     }
     return []

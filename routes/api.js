@@ -1,4 +1,3 @@
-const path = require('path')
 const express = require('express')
 const WebSocket = require('ws')
 const { repositories } = require('../config')
@@ -20,7 +19,7 @@ wss.on('connection', function connection(ws) {
 router.get('/list', function(req, res, next) {
   res.json({
     code: 0,
-      data: Object.values(repositories),
+      data: Object.values(repositories).filter(_ => _.isRepo),
   })
 })
 
@@ -54,14 +53,14 @@ router.get('/deploy', function(req, res, next) {
   const { query: { key, br, commit, deployer } } = req
   const start = Date.now()
   const repository = repositories[key]
-  const p = path.resolve(__dirname, repository.path)
+  const { path } = repository
   if (key) {
     repoOperation.deploy({
       key,
       br,
       commit,
       deployer,
-      p,
+      path,
       start,
     })
       .then((data) => {
@@ -90,9 +89,9 @@ router.get('/installDependencies', function(req, res, next) {
   const { query: { key, br } } = req
   const start = Date.now()
   const repository = repositories[key]
-  const p = path.resolve(__dirname, repository.path)
+  const { path } = repository
   if (key) {
-    repoOperation.installDependencies(key, br, p, start)
+    repoOperation.installDependencies(key, br, path, start)
       .then((data) => {
         wss.clients.forEach(function each(client) {
           if (client.readyState === WebSocket.OPEN) {

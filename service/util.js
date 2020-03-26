@@ -1,6 +1,6 @@
 const { exec } = require('child_process')
 
-module.exports = {
+const utils = {
   emptyArrRes: {
     code: 0,
     data: [],
@@ -32,4 +32,17 @@ module.exports = {
     })
     return r
   },
+  async promiseStack(stack, p) {
+    const list = JSON.parse(JSON.stringify(stack))
+    const s = list.shift()
+    return utils.exec(s, { cwd: p })
+      .then(async(res) => {
+        if (list.length) {
+          return utils.promiseStack(list, p)
+        }
+        return res
+      })
+      .catch(e => e)
+  },
 }
+module.exports = utils
