@@ -71,7 +71,7 @@ module.exports = {
         .then(async(msg) => {
           const r = {
             status: 0,
-            commit,
+            version: commit || br,
             deployer,
             deployTime: Date.now() - start,
           }

@@ -6,10 +6,7 @@ export async function list() {
       const temp = item
       temp.projectName = item.name
       delete temp.name
-      return {
-        ...temp,
-        status: [],
-      }
+      return temp
     }))
 }
 

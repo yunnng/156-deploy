@@ -6,33 +6,16 @@ import { withRouter } from 'react-router-dom'
 import { list } from '../scripts/api'
 
 let history = { push() {} }
-const status = tags => (
-  <span>
-    {tags.map((tag) => {
-      let color = tag.length > 5 ? 'geekblue' : 'green'
-      if (tag === 'loser') {
-        color = 'volcano'
-      }
-      return (
-        <Tag color={color} key={tag}>
-          {tag.toUpperCase()}
-        </Tag>
-      )
-    })}
-  </span>
-)
 
-const action = (props) => {
-  const deployClick = () => {
-    history.push('./Deploy', {
-      ...props,
-    })
-  }
-  return (
-    <span>
-      <Button type='link' onClick={deployClick}>发布</Button>
-    </span>
-  )
+const statusList = {
+  '-1': { color: '', name: '尚未发布' }, // default
+  0: { color: 'green', name: '发布成功' }, // success
+  1: { color: '#2db7f5', name: '发布中' },
+  2: { color: 'red', name: '发布失败' },
+  3: { color: 'orange', name: '需要安装依赖' },
+  4: { color: '#2db7f5', name: '安装依赖中' },
+  5: { color: 'green', name: '安装依赖完成', desc: '仅前端使用' },
+  6: { color: 'volcano', name: '安装依赖失败', desc: '仅前端使用' }, // error
 }
 
 const columns = [
@@ -43,8 +26,8 @@ const columns = [
   },
   {
     title: '发布人',
-    dataIndex: 'name',
-    key: 'name',
+    dataIndex: 'deployer',
+    key: 'deployer',
   },
   {
     title: '发布版本',
@@ -60,12 +43,23 @@ const columns = [
     title: '发布状态',
     key: 'status',
     dataIndex: 'status',
-    render: status,
+    render: status => (
+      <Tag color={statusList[status].color}>{statusList[status].name}</Tag>
+    ),
   },
   {
     title: '操作',
     key: 'action',
-    render: action,
+    render: (props) => {
+      const deployClick = () => {
+        history.push('./Deploy', {
+          ...props,
+        })
+      }
+      return (
+        <Button type='link' onClick={deployClick}>发布</Button>
+      )
+    },
   },
 ]
 

@@ -35,6 +35,9 @@ const utils = {
   async promiseStack(stack, p) {
     const list = JSON.parse(JSON.stringify(stack))
     const s = list.shift()
+    if (process.env.NODE_ENV === 'production' && /^pm2.+/.test(s)) {
+      return utils.promiseStack(list, p)
+    }
     return utils.exec(s, { cwd: p })
       .then(async(res) => {
         if (list.length) {

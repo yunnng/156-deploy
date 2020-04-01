@@ -7,6 +7,8 @@ const logger = require('morgan')
 const indexRouter = require('./routes/index')
 const usersRouter = require('./routes/users')
 
+process.env.NODE_ENV = 'production'
+
 const app = express()
 
 // view engine setup
