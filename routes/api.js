@@ -50,7 +50,7 @@ router.get('/commitList', async function(req, res, next) {
 })
 
 router.get('/deploy', function(req, res, next) {
-  const { query: { key, br, commit, deployer } } = req
+  const { query: { key, br, commit = '', deployer } } = req
   const start = Date.now()
   const repository = repositories[key]
   const { path } = repository

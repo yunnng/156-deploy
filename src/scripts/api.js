@@ -5,6 +5,7 @@ export async function list() {
     .then(({ data = [] }) => (data || []).map((item) => {
       const temp = item
       temp.projectName = item.name
+      temp.version = temp.commit.substr(0, 7)
       delete temp.name
       return temp
     }))

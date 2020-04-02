@@ -6,7 +6,8 @@ const {
 
 const repoStates = {
   deployer: '',
-  version: '',
+  branch: '',
+  commit: '',
   describe: '',
   status: -1,
 }
@@ -61,17 +62,13 @@ module.exports = {
       return repo.checkout('.')
         .then(() => repo.fetch())
         .then(() => repo.checkout(commit || br))
-        .then(async() => {
-          if (commit) {
-            return null
-          }
-          return repo.pull()
-        })
+        .then(async() => (commit ? null : repo.pull()))
         .then(() => promiseStack(repository.cmdList, path))
         .then(async(msg) => {
           const r = {
             status: 0,
-            version: commit || br,
+            branch: br,
+            commit,
             deployer,
             deployTime: Date.now() - start,
           }
