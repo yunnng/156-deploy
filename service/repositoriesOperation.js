@@ -64,7 +64,7 @@ module.exports = {
         .then(() => repo.checkout(commit || br))
         .then(async() => (commit ? null : repo.pull()))
         .then(() => promiseStack(repository.cmdList, path))
-        .then(async(msg) => {
+        .then(async({ stdout }) => {
           const r = {
             status: 0,
             branch: br,
@@ -75,19 +75,23 @@ module.exports = {
           updateRepoStatus(repository, r)
           return {
             ...r,
-            msg,
+            msg: stdout,
           }
         })
         .catch(async(d) => {
-          const { err, message } = d
+          const { stderr, message } = d
           updateRepoStatus(repository, { status: 2 })
           return {
             status: 2,
-            msg: err || message,
+            msg: stderr || message,
           }
         })
     }
-    return []
+    return {
+      key,
+      status: 1,
+      msg: `repo status code is ${status}`,
+    }
   },
   async installDependencies(key, br, p, s) {
     const repository = repositories[key]
@@ -106,11 +110,11 @@ module.exports = {
           }
         })
         .catch(async(d) => {
-          const { err, message } = d
+          const { stderr, message } = d
           updateRepoStatus(repository, { status: 6 })
           return {
             status: 6,
-            msg: err || message,
+            msg: stderr || message,
           }
         })
     }

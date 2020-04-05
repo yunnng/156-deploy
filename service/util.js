@@ -5,16 +5,23 @@ const utils = {
     code: 0,
     data: [],
   },
-  canDeploy: s => [-1, 0, 2].includes(s),
+  canDeploy: s => [-1, 0, 2, 5].includes(s),
   exec(cmd, options = {}) {
     return new Promise((resolve, reject) => {
       exec(cmd, options, (err, stdout, stderr) => {
+        const commonStd = {
+          cmd,
+          p: options.cwd || './',
+        }
         if (err) {
-          const r = { cmd, p: options.cwd || './', err: stderr }
+          const r = { ...commonStd, stderr }
           reject(r)
           return
         }
-        resolve(stdout)
+        resolve({
+          ...commonStd,
+          stdout,
+        })
       })
     })
   },
@@ -32,20 +39,22 @@ const utils = {
     })
     return r
   },
-  async promiseStack(stack, p) {
+  async promiseStack(stack, p, resData = '') {
     const list = JSON.parse(JSON.stringify(stack))
     const s = list.shift()
-    if (process.env.NODE_ENV === 'production' && /^pm2.+/.test(s)) {
-      return utils.promiseStack(list, p)
+    if (process.env.NODE_ENV === 'development' && /^pm2.+/.test(s)) {
+      if (list.length) {
+        return utils.promiseStack(list, p, resData)
+      }
+      return resData
     }
     return utils.exec(s, { cwd: p })
       .then(async(res) => {
         if (list.length) {
-          return utils.promiseStack(list, p)
+          return utils.promiseStack(list, p, res)
         }
         return res
       })
-      .catch(e => e)
   },
 }
 module.exports = utils

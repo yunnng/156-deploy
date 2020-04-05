@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Input, Modal } from 'antd'
-import { UserOutlined } from '@ant-design/icons' // eslint-disable import/no-extraneous-dependencies
+import { UserOutlined } from '@ant-design/icons'
 
 function SayHello() {
   const [name, setName] = useState('')
@@ -23,6 +23,12 @@ function SayHello() {
       localStorage.deployer = name
     }
   }
+
+  const handleEnter = ({ keyCode }) => {
+    if (keyCode === 13) {
+      ok()
+    }
+  }
   return (
     <>
       {!deployer && (
@@ -32,9 +38,11 @@ function SayHello() {
           onOk={ok}
         >
           <Input
+            autoFocus
             size='large'
             prefix={<UserOutlined />}
             onChange={change}
+            onKeyUp={handleEnter}
           />
         </Modal>
       )}

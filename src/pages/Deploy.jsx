@@ -278,7 +278,9 @@ function Deploy(props) {
               </>
             )}
           </Col>
-          {stdout.includes('Cannot find module') && (
+          {(stdout.includes('Cannot find module') || stdout.includes('cross-env: command not found')
+            || stdout.includes('npm install'))
+          && (
             <Col span={4} style={{ textAlign: 'right' }}>
               <Button
                 onClick={depBtnClick}
